@@ -39,6 +39,7 @@ class TestBasicMultisubnet(manager.AdvancedNetworkScenarioTest):
                 '{0}scenario_basic_multisubnet.yaml'.format(SCPATH))
 
     def _check_vm_assignation(self):
+        import ipdb; ipdb.set_trace()
         s1 = 0
         s2 = 0
         for pair in self.servers_and_keys:

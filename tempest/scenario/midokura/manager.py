@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import multiprocessing
 import yaml
 import os
 
@@ -76,7 +77,7 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
 
     def _create_server(self, name, networks,
                        security_groups=None,
-                       has_FIP=False):
+                       has_FIP=False, q=None):
         keypair = self.create_keypair()
         if security_groups is None:
             raise Exception("No security group")
@@ -97,8 +98,10 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
             network_names = self._get_network_by_name(networks[0]['name'])
             FIP = self._assign_floating_ip(server=server,
                                            network_name=network_names[0]['name'])
-
-        return dict(server=server, keypair=keypair, FIP=FIP)
+        info = dict(server=server, keypair=keypair, FIP=FIP) 
+        if q:
+            q.put(info, False)
+        return info
 
     """
     GateWay methods
@@ -328,6 +331,7 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
                         self._create_security_group_rule_list(rule_dict=secgroup,
                                                               secgroup=sg)
             test_topology = []
+            q = multiprocessing.Queue()
             for server in topology['servers']:
                 s_nets = []
                 for snet in server['networks']:
@@ -337,11 +341,21 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
                     s_sg.extend(self._get_security_group_by_name(sg['name']))
                 for x in range(server['quantity']):
                     name = data_utils.rand_name('server-smoke-')
-                    test_topology.append(self._create_server(name=name,
-                                                           networks=s_nets,
-                                                           security_groups=s_sg,
-                                                           has_FIP=server['floating_ip']))
+                    process = multiprocessing.Process(target=self._create_server,
+                                                      args=(name,
+                                                      s_nets,
+                                                      s_sg,
+                                                      server['floating_ip'],
+                                                      q,))
+                    process.start()
+                    process.join()
+                for i in range(q.qsize()):    
+                    test_topology.append(q.get(False))
+                    #name = data_utils.rand_name('server-smoke-')
+                    #test_topology.append(self._create_server(name=name,
+                    #                                       networks=s_nets,
+                    #                                       security_groups=s_sg,
+                    #                                       has_FIP=server['floating_ip']))
             if 'gateway' in topology.keys() and topology['gateway']:
                 test_topology.append(self.build_gateway(self.tenant_id))
-
             return test_topology
