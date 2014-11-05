@@ -11,7 +11,6 @@
 #    under the License.
 
 
-import itertools
 import os
 
 from tempest.openstack.common import log as logging
@@ -22,7 +21,8 @@ LOG = logging.getLogger(__name__)
 SCPATH = "network_scenarios/"
 
 
-class TestNetworkAdvancedInterVMConnectivity(manager.AdvancedNetworkScenarioTest):
+class TestNetworkAdvancedInterVMConnectivity(
+        manager.AdvancedNetworkScenarioTest):
     """
         Scenario:
         VMs with "default" security groups can
@@ -55,37 +55,26 @@ class TestNetworkAdvancedInterVMConnectivity(manager.AdvancedNetworkScenarioTest
     def setUp(self):
         super(TestNetworkAdvancedInterVMConnectivity, self).setUp()
         self.servers_and_keys = self.setup_topology(
-            os.path.abspath('{0}scenario_advanced_inter_vmcon.yaml'.format(SCPATH)))
+            os.path.abspath('{0}scenario_advanced_inter_vmcon.yaml'.format(
+                            SCPATH)))
 
     @test.attr(type='smoke')
     @test.services('compute', 'network')
     def test_network_advanced_inter_vmssh(self):
         ap_details = self.servers_and_keys[-1]
-        ap = ap_details['server']
-        networks = ap['addresses']
-        hops=[(ap_details['FIP'].floating_ip_address, ap_details['keypair']['private_key'])]
-        ip_pk = []
-        #the access_point server should be the last one in the list
-        for element in self.servers_and_keys[:-1]:
-            # servers should only have 1 network
-            server = element['server']
-            name = server['addresses'].keys()[0]
-            if any(i in networks.keys() for i in server['addresses'].keys()):
-                remote_ip = server['addresses'][name][0]['addr']
-                keypair = element['keypair']
-                pk = keypair['private_key']
-                ip_pk.append((remote_ip, pk))
-            else:
-                LOG.info("FAIL - No ip connectivity to the server ip: %s"
-                           % server['addresses'][name][0]['addr'])
-                raise Exception("FAIL - No ip for this network : %s"
-                              % server['addresses'][name])
-        for pair in itertools.permutations(ip_pk):
-            LOG.info("Checking ssh between %s %s"
-                       % (pair[0][0], pair[1][0]))
-            nhops = hops + [pair[0]]
-            self._ssh_through_gateway(nhops, pair[1])
-            LOG.info("Checking ping between %s %s"
-                       % (pair[0][0], pair[1][0]))
-            self._ping_through_gateway(hops, pair[1])
+        hops = [(ap_details['FIP'].floating_ip_address,
+                 ap_details['keypair']['private_key'])]
+        vm1_server = self.servers_and_keys[0]['server']
+        vm2_server = self.servers_and_keys[1]['server']
+        vm1_pk = self.servers_and_keys[0]['keypair']['private_key']
+        vm2_pk = self.servers_and_keys[0]['keypair']['private_key']
+        vm1 = (vm1_server['addresses'].values()[0][0]['addr'], vm1_pk)
+        vm2 = (vm2_server['addresses'].values()[0][0]['addr'], vm2_pk)
+        nhops = hops + [vm1]
+        LOG.info("testing ssh between {0} and {1}".format(
+                 vm1[0], vm2[0]))
+        self._ssh_through_gateway(nhops, vm2)
+        LOG.info("testing ping between {0} and {1}".format(
+                 vm1[0], vm2[0]))
+        self._ping_through_gateway(nhops, vm2)
         LOG.info("test finished, tearing down now ....")
