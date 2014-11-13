@@ -20,19 +20,18 @@ class TenantAdmin(object):
     _interface = 'json'
 
     def __init__(self):
-            os = clients.AdminManager(interface=self._interface)
-            self.client = os.identity_client
-            self.tenants = []
+            _os = clients.AdminManager(interface=self._interface)
+            self.client = _os.identity_client
 
     def tenant_create_enabled(self, name=None, desc=None):
         # Create a tenant that is enabled
         if not name:
             name = data_utils.rand_name(name='tenant-')
         if not desc:
-            desc = data_utils.rand_name('desc_') 
+            desc = data_utils.rand_name('desc_')
         resp, tenant = self.client.create_tenant(
             name=name,
-            description=desc, 
+            description=desc,
             enabled=True)
         return tenant
 
@@ -41,7 +40,11 @@ class TenantAdmin(object):
         return tenant
 
     def get_tenant_by_name(self, tenant_name):
-        _, tenant = self.client.get_tenant(name=tenant_name)
+        tenant = None
+        try:
+            tenant = self.client.get_tenant_by_name(tenant_name)
+        except:
+            pass
         return tenant
 
     def teardown_all(self):

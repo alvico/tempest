@@ -37,7 +37,6 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
 
     @classmethod
     def setUpClass(cls):
-        cls.set_network_resources()
         super(AdvancedNetworkScenarioTest, cls).setUpClass()
 
     """
@@ -78,6 +77,7 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
     def _create_server(self, name, networks,
                        security_groups=None,
                        has_FIP=False):
+        import ipdb; ipdb.set_trace()
         keypair = self.create_keypair()
         if security_groups is None:
             raise Exception("No security group")
@@ -90,6 +90,7 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
             'networks': nics,
             'key_name': keypair['name'],
             'security_groups': security_groups,
+            'tenant_id': self.tenant_id,
         }
         server = self.create_server(name=name,
                                     create_kwargs=create_kwargs)
@@ -203,9 +204,9 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
     def _get_tenant(self, tenant):
         TA = admintools.TenantAdmin()
         _tenant = None
-        _, _tenant = TA.get_tenant_by_name(tenant['name'])
+        _tenant = TA.get_tenant_by_name(tenant['name'])
         if _tenant is None:
-            _tenant = TA.tenant_create_enable(name=tenant['name'],
+            _tenant = TA.tenant_create_enabled(name=tenant['name'],
                                               desc=tenant['description'])
         return _tenant
 
@@ -353,6 +354,7 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
                 s_sg.append(self._get_security_group_by_name(sg['name']))
             for x in range(server['quantity']):
                 name = data_utils.rand_name('server-smoke-')
+                import ipdb; ipdb.set_trace()
                 test_topology.append(self._create_server(name=name,
                                                          networks=s_nets,
                                                          security_groups=s_sg,
@@ -367,15 +369,16 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
         fullpath = os.path.join(mpath, yaml_topology.split('/')[-1])
         with open(fullpath, 'r') as yaml_topology:
             topology = yaml.load(yaml_topology)
-            import ipdb; ipdb.set_trace()
             scenario = list()
             if 'tenants' in topology.keys():
                 for tenant in topology['tenants']:
-                    tenant_id = self._get_tenant(tenant)
-                    scenario = topology['scenario']
+                    tenant_id = self._get_tenant(tenant)['id']
+                    topo =  [x for x in topology['scenarios'] \
+                                 if x['name'] == tenant['scenario']][0]
                     scenario.append(dict(tenant=tenant_id,
-                                         servers_and_keys=self._setup_topology(scenario,
-                                         tenant_id=tenant_id)))
+                                         servers_and_keys=self._setup_topology(
+                                             topo,
+                                             tenant_id=tenant_id)))
             else:
                 scenario = self._setup_topology(topology)
         return scenario

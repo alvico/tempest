@@ -13,23 +13,21 @@
 tenants:
 - name: tenant_1
   description: a tenant 
-  scenario:
-  - name: scenario1
+  scenario: scenario1
 - name: tenant_2
   description: a tenant 
-  scenario:
-  - name: scenario1
+  scenario: scenario1
 
-scenario:
+scenarios:
 - name: scenario1
   servers:
   - image:
     flavor:
     security_groups:
-  - name: standard
+    - name: standard
     keypair:
     networks:
-  - name: netA
+    - name: netA
     floating_ip: True
     quantity: 2
 

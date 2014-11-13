@@ -56,6 +56,25 @@ class TestNetworkBasicMultitenants(manager.AdvancedNetworkScenarioTest):
     @classmethod
     def setUpClass(cls):
         super(TestNetworkBasicMultitenants, cls).setUpClass()
+        # Clients (in alphabetical order)
+        cls.flavors_client = cls.admin_manager.flavors_client
+        cls.floating_ips_client = cls.admin_manager.floating_ips_client
+        # Glance image client v1
+        cls.image_client = cls.admin_manager.image_client
+        # Compute image client
+        cls.images_client = cls.admin_manager.images_client
+        cls.keypairs_client = cls.admin_manager.keypairs_client
+        cls.networks_client = cls.admin_manager.networks_client
+        # Nova security groups client
+        cls.security_groups_client = cls.admin_manager.security_groups_client
+        cls.servers_client = cls.admin_manager.servers_client
+        cls.volumes_client = cls.admin_manager.volumes_client
+        cls.snapshots_client = cls.admin_manager.snapshots_client
+        cls.interface_client = cls.admin_manager.interfaces_client
+        # Neutron network client
+        cls.network_client = cls.admin_manager.network_client
+        # Heat client
+        cls.orchestration_client = cls.admin_manager.orchestration_client
         cls.check_preconditions()
 
     def setUp(self):
