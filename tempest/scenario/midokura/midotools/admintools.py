@@ -24,19 +24,24 @@ class TenantAdmin(object):
             self.client = os.identity_client
             self.tenants = []
 
-    def tenant_create_enabled(self):
+    def tenant_create_enabled(self, name=None, desc=None):
         # Create a tenant that is enabled
-        tenant_name = data_utils.rand_name(name='tenant-')
-        description = data_utils.rand_name('desc_')
+        if not name:
+            name = data_utils.rand_name(name='tenant-')
+        if not desc:
+            desc = data_utils.rand_name('desc_') 
         resp, tenant = self.client.create_tenant(
-            name=tenant_name,
-            description=description, enabled=True)
-        self.tenants.append(tenant)
+            name=name,
+            description=desc, 
+            enabled=True)
         return tenant
 
     def get_tenant(self, tenant_id):
         res, tenant = self.client.get_tenant(tenant_id)
-        self.tenants.append(tenant)
+        return tenant
+
+    def get_tenant_by_name(self, tenant_name):
+        _, tenant = self.client.get_tenant(name=tenant_name)
         return tenant
 
     def teardown_all(self):

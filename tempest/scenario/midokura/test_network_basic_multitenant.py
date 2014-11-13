@@ -27,13 +27,14 @@ LOG = logging.getLogger(__name__)
 SCPATH = "/network_scenarios/"
 
 
-class TestNetworkBasicVMConnectivity(manager.AdvancedNetworkScenarioTest):
+class TestNetworkBasicMultitenants(manager.AdvancedNetworkScenarioTest):
     """
         Description:
         Overlapping IP in different tenants
 
         Scenario:
-        VMs with overlapping ip address in different tenants should not interfare each other
+        VMs with overlapping ip address in different
+        tenants should not interfare each other
 
         Prerequisites:
         - 2 tenants
@@ -41,7 +42,8 @@ class TestNetworkBasicVMConnectivity(manager.AdvancedNetworkScenarioTest):
         - 1 subnet with same CIDR for each tenant
 
         Steps:
-        This testing requires that an option "allow_overlapping_ips = True
+        This testing requires that an option
+        "allow_overlapping_ips = True
         " is configured in neutron.conf file
 
         1. launch VMs with overlapping IP
@@ -53,14 +55,13 @@ class TestNetworkBasicVMConnectivity(manager.AdvancedNetworkScenarioTest):
 
     @classmethod
     def setUpClass(cls):
-        super(TestNetworkBasicVMConnectivity, cls).setUpClass()
+        super(TestNetworkBasicMultitenants, cls).setUpClass()
         cls.check_preconditions()
-        cls.check_overlaping_ips()
 
     def setUp(self):
-        super(TestNetworkBasicVMConnectivity, self).setUp()
+        super(TestNetworkBasicMultitenants, self).setUp()
         self.scenarios = self.setup_topology(
-            os.path.abspath('{0}scenario_basic_vmconnectivity.yaml'.format(SCPATH)))
+            os.path.abspath('{0}scenario_basic_multitenant.yaml'.format(SCPATH)))
 
     def _route_and_ip_test(self, hops):
         LOG.info("Trying to get the list of ips")
@@ -90,7 +91,6 @@ class TestNetworkBasicVMConnectivity(manager.AdvancedNetworkScenarioTest):
             LOG.info(inst.args)
             raise
 
-
     @test.attr(type='smoke')
     @test.services('compute', 'network')
     def test_network_basic_multitenant(self):
@@ -99,14 +99,14 @@ class TestNetworkBasicVMConnectivity(manager.AdvancedNetworkScenarioTest):
 
     def _multitenant_test(self, servers_and_keys):
         ssh_login = CONF.compute.image_ssh_user
-        #the access_point server should be the last one in the list
+        # the access_point server should be the last one in the list
         for element in servers_and_keys:
             ip_address = element['FIP'].floating_ip_address
             private_key = element['keypair']['private_key']
             linux_client = \
                 self.get_remote_client(ip_address, ssh_login, private_key)
             result = \
-                    linux_client.exec_command(
+                linux_client.exec_command(
                         "curl http://169.254.169.254/" +
                         "latest/meta-data/instance-id")
             LOG.info(result)

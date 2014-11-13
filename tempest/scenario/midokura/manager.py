@@ -24,6 +24,7 @@ from tempest import config
 from tempest.openstack.common import log
 from tempest.scenario import manager
 from tempest.services.network import resources as net_resources
+from tempest.scenario.midokura.midotools import admintools
 
 CONF = config.CONF
 LOG = log.getLogger(__name__)
@@ -199,6 +200,15 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
     """
     Get Methods
     """
+    def _get_tenant(self, tenant):
+        TA = admintools.TenantAdmin()
+        _tenant = None
+        _, _tenant = TA.get_tenant_by_name(tenant['name'])
+        if _tenant is None:
+            _tenant = TA.tenant_create_enable(name=tenant['name'],
+                                              desc=tenant['description'])
+        return _tenant
+
     def _get_tenant_security_groups(self, tenant=None):
         if not tenant:
             tenant = self.tenant_id
@@ -357,10 +367,11 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
         fullpath = os.path.join(mpath, yaml_topology.split('/')[-1])
         with open(fullpath, 'r') as yaml_topology:
             topology = yaml.load(yaml_topology)
+            import ipdb; ipdb.set_trace()
             scenario = list()
             if 'tenants' in topology.keys():
                 for tenant in topology['tenants']:
-                    tenant_id = self.get_tenant(tenant)
+                    tenant_id = self._get_tenant(tenant)
                     scenario = topology['scenario']
                     scenario.append(dict(tenant=tenant_id,
                                          servers_and_keys=self._setup_topology(scenario,

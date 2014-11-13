@@ -12,13 +12,13 @@
 
 tenants:
 - name: tenant_1
+  description: a tenant 
   scenario:
   - name: scenario1
-    description: a tenant
 - name: tenant_2
+  description: a tenant 
   scenario:
   - name: scenario1
-    description: a tenant number 2
 
 scenario:
 - name: scenario1
@@ -28,10 +28,10 @@ scenario:
     security_groups:
   - name: standard
     keypair:
-  networks:
+    networks:
   - name: netA
-  floating_ip: True
-  quantity: 2
+    floating_ip: True
+    quantity: 2
 
   networks:
   - name: netA
@@ -50,13 +50,13 @@ scenario:
       - name: router_1
         public: True
 
-    security_groups:
-    - description: SSH and ICMP
-      name: standard
-      security_group_rules:
-      - port_range_max: 22
-        port_range_min: 22
-        protocol: tcp
-      - protocol: icmp
+  security_groups:
+  - description: SSH and ICMP
+    name: standard
+    security_group_rules:
+    - port_range_max: 22
+      port_range_min: 22
+      protocol: tcp
+    - protocol: icmp
 
     gateway: False
