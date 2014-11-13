@@ -360,9 +360,10 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
             scenario = list()
             if 'tenants' in topology.keys():
                 for tenant in topology['tenants']:
-                    tenant_id = self.get_tenant()
+                    tenant_id = self.get_tenant(tenant)
+                    scenario = topology['scenario']
                     scenario.append(dict(tenant=tenant_id,
-                                         servers_and_keys=self._setup_topology(topology,
+                                         servers_and_keys=self._setup_topology(scenario,
                                          tenant_id=tenant_id)))
             else:
                 scenario = self._setup_topology(topology)
