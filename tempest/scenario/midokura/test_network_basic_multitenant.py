@@ -114,6 +114,7 @@ class TestNetworkBasicMultitenants(manager.AdvancedNetworkScenarioTest):
                         "curl http://169.254.169.254/" +
                         "latest/meta-data/local-hostname")
             LOG.info(result)
+            result = result.split(".")[0]
             server = element['server']
             import ipdb; ipdb.set_trace()
             self.assertEqual(server['name'],result)
