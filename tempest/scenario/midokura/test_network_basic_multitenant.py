@@ -56,31 +56,13 @@ class TestNetworkBasicMultitenants(manager.AdvancedNetworkScenarioTest):
     @classmethod
     def setUpClass(cls):
         super(TestNetworkBasicMultitenants, cls).setUpClass()
-        # Clients (in alphabetical order)
-        cls.flavors_client = cls.admin_manager.flavors_client
-        cls.floating_ips_client = cls.admin_manager.floating_ips_client
-        # Glance image client v1
-        cls.image_client = cls.admin_manager.image_client
-        # Compute image client
-        cls.images_client = cls.admin_manager.images_client
-        cls.keypairs_client = cls.admin_manager.keypairs_client
-        cls.networks_client = cls.admin_manager.networks_client
-        # Nova security groups client
-        cls.security_groups_client = cls.admin_manager.security_groups_client
-        cls.servers_client = cls.admin_manager.servers_client
-        cls.volumes_client = cls.admin_manager.volumes_client
-        cls.snapshots_client = cls.admin_manager.snapshots_client
-        cls.interface_client = cls.admin_manager.interfaces_client
-        # Neutron network client
-        cls.network_client = cls.admin_manager.network_client
-        # Heat client
-        cls.orchestration_client = cls.admin_manager.orchestration_client
         cls.check_preconditions()
 
     def setUp(self):
         super(TestNetworkBasicMultitenants, self).setUp()
         self.scenarios = self.setup_topology(
-            os.path.abspath('{0}scenario_basic_multitenant.yaml'.format(SCPATH)))
+            os.path.abspath(
+                    '{0}scenario_basic_multitenant.yaml'.format(SCPATH)))
 
     def _route_and_ip_test(self, hops):
         LOG.info("Trying to get the list of ips")
@@ -113,12 +95,15 @@ class TestNetworkBasicMultitenants(manager.AdvancedNetworkScenarioTest):
     @test.attr(type='smoke')
     @test.services('compute', 'network')
     def test_network_basic_multitenant(self):
-        for scenario in self.scenarios:
-            self._multitenant_test(scenario)
+        for creds_and_scenario in self.scenarios:
+            self._multitenant_test(creds_and_scenario)
 
-    def _multitenant_test(self, servers_and_keys):
+    def _multitenant_test(self, creds_and_scenario):
         ssh_login = CONF.compute.image_ssh_user
         # the access_point server should be the last one in the list
+        creds = creds_and_scenario['credentials']
+        self.set_context(creds)
+        servers_and_keys = creds_and_scenario['servers_and_keys']
         for element in servers_and_keys:
             ip_address = element['FIP'].floating_ip_address
             private_key = element['keypair']['private_key']
@@ -127,9 +112,9 @@ class TestNetworkBasicMultitenants(manager.AdvancedNetworkScenarioTest):
             result = \
                 linux_client.exec_command(
                         "curl http://169.254.169.254/" +
-                        "latest/meta-data/instance-id")
+                        "latest/meta-data/local-hostname")
             LOG.info(result)
             server = element['server']
             import ipdb; ipdb.set_trace()
-            self.assertEqual(server['id]'],result)
+            self.assertEqual(server['name'],result)
         LOG.info("test finished, tearing down now ....")

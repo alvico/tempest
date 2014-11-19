@@ -16,7 +16,10 @@
 import yaml
 import os
 
+from tempest import clients
 from tempest import exceptions
+from tempest.common import credentials
+from tempest.common import isolated_creds
 from neutronclient.common import exceptions as NeutronClientException
 from tempest.common.utils import data_utils
 from tempest.common.utils.linux import remote_client
@@ -77,7 +80,6 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
     def _create_server(self, name, networks,
                        security_groups=None,
                        has_FIP=False):
-        import ipdb; ipdb.set_trace()
         keypair = self.create_keypair()
         if security_groups is None:
             raise Exception("No security group")
@@ -204,17 +206,20 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
     def _get_tenant(self, tenant):
         TA = admintools.TenantAdmin()
         _tenant = None
+        _creds = None
         _tenant = TA.get_tenant_by_name(tenant['name'])
         if _tenant is None:
-            _tenant = TA.tenant_create_enabled(name=tenant['name'],
+            _tenant, _creds  = TA.tenant_create_enabled(name=tenant['name'],
                                               desc=tenant['description'])
-        return _tenant
+        else:
+            _creds = TA.admin_credentials(_tenant)
+        return _tenant, _creds
 
     def _get_tenant_security_groups(self, tenant=None):
         if not tenant:
             tenant = self.tenant_id
         client = self.network_client
-        _, sgs = client.list_security_groups()
+        _, sgs = client.list_security_groups(tenant_id=tenant)
         return sgs['security_groups']
 
     def _get_tenant_networks(self, tenant=None):
@@ -258,6 +263,16 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
     """
     Tool methods
     """
+    def set_context(self, credentials):
+        self.mymanager = clients.Manager(credentials=credentials)
+        self.floating_ips_client = self.mymanager.floating_ips_client
+        self.keypairs_client = self.mymanager.keypairs_client
+        self.networks_client = self.mymanager.networks_client
+        self.security_groups_client = self.mymanager.security_groups_client
+        self.servers_client = self.mymanager.servers_client
+        self.interface_client = self.mymanager.interfaces_client
+        self.network_client = self.mymanager.network_client
+
     def _toggle_dhcp(self, subnet_id, enable=False):
         _, result = self.network_client.update_subnet(subnet_id, enable_dhcp=enable)
         subnet = result["subnet"]
@@ -298,7 +313,8 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
             self.tenant_id = tenant_id
         networks = [n for n in topology['networks']]
         for network in networks:
-            net = self._create_network(tenant_id=self.tenant_id,
+            net = self._create_network(client=self.network_client,
+                                       tenant_id=self.tenant_id,
                                        namestart=network['name'])
             for subnet in network['subnets']:
                 routers = []
@@ -354,11 +370,11 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
                 s_sg.append(self._get_security_group_by_name(sg['name']))
             for x in range(server['quantity']):
                 name = data_utils.rand_name('server-smoke-')
-                import ipdb; ipdb.set_trace()
                 test_topology.append(self._create_server(name=name,
                                                          networks=s_nets,
                                                          security_groups=s_sg,
                                                          has_FIP=server['floating_ip']))
+        
         if 'gateway' in topology.keys() and topology['gateway']:
             test_topology.append(self.build_gateway(self.tenant_id))
 
@@ -372,13 +388,14 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
             scenario = list()
             if 'tenants' in topology.keys():
                 for tenant in topology['tenants']:
-                    tenant_id = self._get_tenant(tenant)['id']
+                    _tenant, creds = self._get_tenant(tenant)
+                    self.set_context(creds)
                     topo =  [x for x in topology['scenarios'] \
                                  if x['name'] == tenant['scenario']][0]
-                    scenario.append(dict(tenant=tenant_id,
+                    scenario.append(dict(credentials=creds,
                                          servers_and_keys=self._setup_topology(
                                              topo,
-                                             tenant_id=tenant_id)))
+                                             tenant_id=_tenant['id'])))
             else:
                 scenario = self._setup_topology(topology)
         return scenario

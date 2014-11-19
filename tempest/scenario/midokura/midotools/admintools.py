@@ -9,9 +9,8 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-__author__ = 'Albert'
-__email__ = "albert.vico@midokura.com"
 
+from tempest import auth
 from tempest import clients
 from tempest.common.utils import data_utils
 
@@ -33,7 +32,35 @@ class TenantAdmin(object):
             name=name,
             description=desc,
             enabled=True)
-        return tenant
+        user = self.get_user_by_name('admin')
+        role = self.get_role_by_name('admin')
+        _, role = self.client.assign_user_role(tenant['id'],
+                                               user['id'],
+                                               role['id'])
+        creds = self._get_credentials(user, tenant)
+        return tenant, creds
+
+    def admin_credentials(self, tenant):
+        user = self.get_user_by_name('admin')
+        return self._get_credentials(user, tenant)
+
+    def _get_credentials(self, user, tenant):
+        return auth.get_credentials(
+            username=user['name'], user_id=user['id'],
+            tenant_name=tenant['name'], tenant_id=tenant['id'],
+            password=self.client.password)
+
+    def get_user_by_name(self, name):
+        _, users = self.client.get_users()
+        user = [u for u in users if u['name'] == name]
+        if len(user) > 0:
+            return user[0]
+
+    def get_role_by_name(self, name):
+        _, roles = self.client.list_roles()
+        role = [r for r in roles if r['name'] == name]
+        if len(role) > 0:
+            return role[0]
 
     def get_tenant(self, tenant_id):
         res, tenant = self.client.get_tenant(tenant_id)
@@ -47,7 +74,5 @@ class TenantAdmin(object):
             pass
         return tenant
 
-    def teardown_all(self):
-            for tenant in self.tenants:
-                self.client.delete_tenant(tenant['id'])
-            self.tenants = []
+    def teardown_all(self, tenant):
+        self.client.delete_tenant(tenant['id'])
