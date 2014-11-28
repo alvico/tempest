@@ -18,8 +18,6 @@ import os
 
 from tempest import clients
 from tempest import exceptions
-from tempest.common import credentials
-from tempest.common import isolated_creds
 from neutronclient.common import exceptions as NeutronClientException
 from tempest.common.utils import data_utils
 from tempest.common.utils.linux import remote_client
@@ -99,10 +97,12 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
         FIP = None
         if has_FIP:
             network_names = self._get_network_by_name(networks[0]['name'])
-            FIP = self._assign_floating_ip(server=server,
-                                           network_name=network_names[0]['name'])
+            FIP = self._assign_floating_ip(
+                        server=server,
+                        network_name=network_names[0]['name'])
 
         return dict(server=server, keypair=keypair, FIP=FIP)
+
 
     """
     GateWay methods
@@ -374,7 +374,6 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
                                                          networks=s_nets,
                                                          security_groups=s_sg,
                                                          has_FIP=server['floating_ip']))
-        
         if 'gateway' in topology.keys() and topology['gateway']:
             test_topology.append(self.build_gateway(self.tenant_id))
 

@@ -28,7 +28,7 @@ scenarios:
     keypair:
     networks:
     - name: netA
-    floating_ip: False
+    floating_ip: True
     quantity: 2
 
   networks:
@@ -44,7 +44,9 @@ scenarios:
       allocation_pools:
       - start:
         end:
-      routers: []
+      routers:
+      - name: router_1
+        public: True
 
   security_groups:
   - description: SSH and ICMP
@@ -55,4 +57,4 @@ scenarios:
       protocol: tcp
     - protocol: icmp
 
-  gateway: True
+    gateway: False

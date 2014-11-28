@@ -19,7 +19,7 @@ from tempest.openstack.common import log as logging
 from tempest.scenario.midokura.midotools import helper
 from tempest.scenario.midokura import manager
 from tempest import test
-from tempest.scenario.midokura.midotools import admintools
+
 
 CONF = config.CONF
 LOG = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 SCPATH = "/network_scenarios/"
 
 
-class TestNetworkBasicMultitenants(manager.AdvancedNetworkScenarioTest):
+class TestNetworkBasicMultitenantsFIP(manager.AdvancedNetworkScenarioTest):
     """
         Description:
         Overlapping IP in different tenants
@@ -55,26 +55,14 @@ class TestNetworkBasicMultitenants(manager.AdvancedNetworkScenarioTest):
 
     @classmethod
     def setUpClass(cls):
-        super(TestNetworkBasicMultitenants, cls).setUpClass()
+        super(TestNetworkBasicMultitenantsFIP, cls).setUpClass()
         cls.check_preconditions()
 
-    @classmethod
-    def tearDownClass(cls):
-        try:
-            super(TestNetworkBasicMultitenants, cls).tearDownClass()
-        finally:
-            cls.clear_creds()
-
-    @classmethod
-    def clear_creds(cls):
-        TA = admintools.TenantAdmin()
-        TA.teardown_tenants()
-
     def setUp(self):
-        super(TestNetworkBasicMultitenants, self).setUp()
+        super(TestNetworkBasicMultitenantsFIP, self).setUp()
         self.scenarios = self.setup_topology(
             os.path.abspath(
-                '{0}scenario_basic_multitenant.yaml'.format(SCPATH)))
+                '{0}scenario_basic_multitenant_fip.yaml'.format(SCPATH)))
 
     def _route_and_ip_test(self, hops):
         LOG.info("Trying to get the list of ips")
@@ -106,25 +94,27 @@ class TestNetworkBasicMultitenants(manager.AdvancedNetworkScenarioTest):
 
     @test.attr(type='smoke')
     @test.services('compute', 'network')
-    def test_network_basic_multitenant(self):
+    def test_network_basic_multitenant_fip(self):
         for creds_and_scenario in self.scenarios:
             self._multitenant_test(creds_and_scenario)
 
     def _multitenant_test(self, creds_and_scenario):
+        ssh_login = CONF.compute.image_ssh_user
         # the access_point server should be the last one in the list
         creds = creds_and_scenario['credentials']
         self.set_context(creds)
         servers_and_keys = creds_and_scenario['servers_and_keys']
-        ap_details = servers_and_keys[-1]
-        networks = ap_details['server']['addresses']
-        hops = [(ap_details['FIP'].floating_ip_address,
-                ap_details['keypair']['private_key'])]
-        for element in servers_and_keys[:-1]:
+        for element in servers_and_keys:
+            ip_address = element['FIP'].floating_ip_address
+            private_key = element['keypair']['private_key']
+            linux_client = \
+                self.get_remote_client(ip_address, ssh_login, private_key)
+            result = \
+                linux_client.exec_command(
+                    "curl http://169.254.169.254/" +
+                    "latest/meta-data/local-hostname")
+            LOG.info(result)
+            result = result.split(".")[0]
             server = element['server']
-            name = server['addresses'].keys()[0]
-            if any(i in networks.keys() for i in server['addresses'].keys()):
-                remote_ip = server['addresses'][name][0]['addr']
-                privatekey = element['keypair']['private_key']
-                hops.append((remote_ip, privatekey))
-                self._route_and_ip_test(hops)
+            self.assertEqual(server['name'], result)
         LOG.info("test finished, tearing down now ....")

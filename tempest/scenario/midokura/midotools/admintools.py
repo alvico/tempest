@@ -16,11 +16,16 @@ from tempest.common.utils import data_utils
 
 
 class TenantAdmin(object):
+    __shared_state = {}
     _interface = 'json'
 
     def __init__(self):
-            _os = clients.AdminManager(interface=self._interface)
-            self.client = _os.identity_client
+        self.__dict__ = self.__shared_state
+        if 'client' not  in self.__dict__:
+            self.client = clients.AdminManager(
+                interface=self._interface).identity_client
+            if 'tenants' not:q in self.__dict__:
+            self.tenants = []
 
     def tenant_create_enabled(self, name=None, desc=None):
         # Create a tenant that is enabled
@@ -38,6 +43,7 @@ class TenantAdmin(object):
                                                user['id'],
                                                role['id'])
         creds = self._get_credentials(user, tenant)
+        self.tenants.add(tenant)
         return tenant, creds
 
     def admin_credentials(self, tenant):
@@ -74,5 +80,7 @@ class TenantAdmin(object):
             pass
         return tenant
 
-    def teardown_all(self, tenant):
-        self.client.delete_tenant(tenant['id'])
+    def teardown_tenants(self):
+        for tenant in self.tenants:
+            tenant_id = tenant['id']
+            self.client.delete_tenant(tenant_id)

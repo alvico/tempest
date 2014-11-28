@@ -60,20 +60,21 @@ class TestNetworkBasicVMConnectivity(manager.AdvancedNetworkScenarioTest):
     def setUp(self):
         super(TestNetworkBasicVMConnectivity, self).setUp()
         self.servers_and_keys = self.setup_topology(
-            os.path.abspath('{0}scenario_basic_vmconnectivity.yaml'.format(SCPATH)))
+            os.path.abspath(
+                '{0}scenario_basic_vmconnectivity.yaml'.format(SCPATH)))
 
-    def _serious_test(self, hops):
+    def _test_routes(self, hops):
         LOG.info("Trying to get the list of ips")
-        try:           
+        try:
             ssh_client = self.setup_tunnel(hops)
             net_info = ssh_client.get_ip_list()
             LOG.debug(net_info)
             pattern = re.compile(
                 '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
-            list = pattern.findall(net_info)
-            LOG.debug(list)
+            ip_list = pattern.findall(net_info)
+            LOG.debug(ip_list)
             remote_ip, _ = hops[-1]
-            self.assertIn(remote_ip, list)
+            self.assertIn(remote_ip, ip_list)
             route_out = ssh_client.exec_command("sudo /sbin/route -n")
             self._check_default_gateway(route_out, remote_ip)
             LOG.info(route_out)
@@ -95,10 +96,11 @@ class TestNetworkBasicVMConnectivity(manager.AdvancedNetworkScenarioTest):
     @test.services('compute', 'network')
     def test_network_basic_vmconnectivity(self):
         ap_details = self.servers_and_keys[-1]
-        ap = ap_details['server']
-        networks = ap['addresses']
-        hops=[(ap_details['FIP'].floating_ip_address, ap_details['keypair']['private_key'])]
-        #the access_point server should be the last one in the list
+        access_point = ap_details['server']
+        networks = access_point['addresses']
+        hops = [(ap_details['FIP'].floating_ip_address,
+                ap_details['keypair']['private_key'])]
+        # the access_point server should be the last one in the list
         for element in self.servers_and_keys[:-1]:
             if element['server']['name'].startswith('access_point'):
                 continue
@@ -107,9 +109,9 @@ class TestNetworkBasicVMConnectivity(manager.AdvancedNetworkScenarioTest):
             if any(i in networks.keys() for i in server['addresses'].keys()):
                 remote_ip = server['addresses'][name][0]['addr']
                 keypair = element['keypair']
-                pk = keypair['private_key']
-                hops.append((remote_ip,pk))
-                self._serious_test(hops)
+                privatekey = keypair['private_key']
+                hops.append((remote_ip, privatekey))
+                self._test_routes(hops)
             else:
                 LOG.info("FAIL - No ip connectivity to the server ip: %s"
                          % server.networks[name][0])
