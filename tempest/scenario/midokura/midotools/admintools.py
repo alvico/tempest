@@ -84,3 +84,4 @@ class TenantAdmin(object):
         for tenant in self.tenants:
             tenant_id = tenant['id']
             self.client.delete_tenant(tenant_id)
+        self.tenants = []
