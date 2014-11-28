@@ -19,7 +19,6 @@ from tempest.openstack.common import log as logging
 from tempest.scenario.midokura.midotools import helper
 from tempest.scenario.midokura import manager
 from tempest import test
-from tempest.scenario.midokura.midotools import admintools
 
 CONF = config.CONF
 LOG = logging.getLogger(__name__)
@@ -57,18 +56,6 @@ class TestNetworkBasicMultitenants(manager.AdvancedNetworkScenarioTest):
     def setUpClass(cls):
         super(TestNetworkBasicMultitenants, cls).setUpClass()
         cls.check_preconditions()
-
-    @classmethod
-    def tearDownClass(cls):
-        try:
-            super(TestNetworkBasicMultitenants, cls).tearDownClass()
-        finally:
-            cls.clear_creds()
-
-    @classmethod
-    def clear_creds(cls):
-        TA = admintools.TenantAdmin()
-        TA.teardown_tenants()
 
     def setUp(self):
         super(TestNetworkBasicMultitenants, self).setUp()

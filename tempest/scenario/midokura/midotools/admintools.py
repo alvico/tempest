@@ -21,10 +21,10 @@ class TenantAdmin(object):
 
     def __init__(self):
         self.__dict__ = self.__shared_state
-        if 'client' not  in self.__dict__:
+        if 'client' not in self.__dict__:
             self.client = clients.AdminManager(
                 interface=self._interface).identity_client
-            if 'tenants' not:q in self.__dict__:
+        if 'tenants' not in self.__dict__:
             self.tenants = []
 
     def tenant_create_enabled(self, name=None, desc=None):
@@ -43,7 +43,7 @@ class TenantAdmin(object):
                                                user['id'],
                                                role['id'])
         creds = self._get_credentials(user, tenant)
-        self.tenants.add(tenant)
+        self.tenants.append(tenant)
         return tenant, creds
 
     def admin_credentials(self, tenant):

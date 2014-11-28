@@ -40,6 +40,18 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
     def setUpClass(cls):
         super(AdvancedNetworkScenarioTest, cls).setUpClass()
 
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            super(AdvancedNetworkScenarioTest, cls).tearDownClass()
+        finally:
+            cls.clear_creds()
+
+    @classmethod
+    def clear_creds(cls):
+        TA = admintools.TenantAdmin()
+        TA.teardown_tenants()
+
     """
     Creation Methods
     """
@@ -98,11 +110,10 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
         if has_FIP:
             network_names = self._get_network_by_name(networks[0]['name'])
             FIP = self._assign_floating_ip(
-                        server=server,
-                        network_name=network_names[0]['name'])
+                   server=server,
+                   network_name=network_names[0]['name'])
 
         return dict(server=server, keypair=keypair, FIP=FIP)
-
 
     """
     GateWay methods
@@ -162,8 +173,8 @@ class AdvancedNetworkScenarioTest(manager.NetworkScenarioTest):
                     is not 'up\n':
                 try:
                     result = access_point_ssh.exec_command(
-                                    "sudo /sbin/cirros-dhcpc up eth{0}".format(net), 
-                                    10)
+                        "sudo /sbin/cirros-dhcpc up eth{0}".format(net), 
+                        10)
                     LOG.info(result)
                 except exceptions.TimeoutException:
                     pass
