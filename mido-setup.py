@@ -12,35 +12,36 @@ from tempest.scenario.midokura.midotools import admintools
 from tempest import config
 
 CONF = config.CONF
-LOG = logging.getLogger(__name__)
+image_ref = None
+tenant = None
 
 
-def main(self):
+def main():
     admin = admintools.TenantAdmin()
-    tenant_name = CONF.intdentity.admin_tenant_name
-    self.tenant = admin.get_tenant_by_name(tenant_name)
-    credentials = admin.admin_credentials(self.tenant)
-    self.set_context(credentials)
-    self.image_ref = None
+    tenant_name = CONF.identity.admin_tenant_name
+    tenant = admin.get_tenant_by_name(tenant_name)
+    credentials = admin.admin_credentials(tenant)
+    network_client, image_client, glance_client = set_context(credentials)
 
     # Start to config
-    self.fix_cirros()
-    self.fix_tempest_conf()
+    fix_cirros(glance_client, image_client)
+    fix_tempest_conf(network_client)
 
 
-def set_context(self, credentials):
-    keystone = ksclient.Client(**self._get_keystone_credentials(credentials))
-    self.manager = clients.Manager(credentials=credentials)
-    self.network_client = self.manager.network_client
-    self.image_client = self.manager.image_client
+def set_context(credentials):
+    keystone = ksclient.Client(**_get_keystone_credentials(credentials))
+    manager = clients.Manager(credentials=credentials)
+    network_client = manager.network_client
+    image_client = manager.image_client
     glance_endpoint = keystone.service_catalog.url_for(service_type='image',
                                                        endpoint_type='internal')
-    self.glance_client =\
+    glance_client =\
         glclient.Client(glance_endpoint,
                         token=keystone.auth_token)
+    return network_client, image_client, glance_client
 
 
-def _get_keystone_credentials(self, credentials):
+def _get_keystone_credentials(credentials):
     d = {}
     d['username'] = credentials.username
     d['password'] = credentials.password
@@ -50,43 +51,47 @@ def _get_keystone_credentials(self, credentials):
     return d
 
 
-def fix_cirros(self):
-    images = self.glance_client.images.list()
+def fix_cirros(glance_client, image_client):
+    global image_ref
+    images = glance_client.images.list()
     flag = 1
     for img in images:
+        print img
+        print "#####"
         if img['checksum'] == '133eae9fb1c98f45894a4e60d8736619' and img[
                 'visibility'] is 'public':
-            self.image_ref = img['id']
+            image_ref = img['id']
             flag = 0
             break
     if flag > 0:
-        self.upload_cirros()
+        upload_cirros(image_client)
 
 
-def upload_cirros(self):
+def upload_cirros(image_client):
     # create and image with cirros 0.3.3
+    global image_ref
     kwargs = {
         'location': 'http://download.cirros-cloud.net/0.3.3/cirros-0.3.3-x86_64-disk.img',
         'visibility': 'public',
         'is_public': True,
     }
-    resp, body = self.image_client.create_image(name='cirros 0.3.3',
+    resp, body = image_client.create_image(name='cirros 0.3.3',
                                                 container_format='bare',
                                                 disk_format='raw',
                                                 **kwargs)
     if resp['status'] != "201":
         raise Exception("Cirros image not created")
     else:
-        self.image_ref = body['id']
+        image_ref = body['id']
 
 
-def fix_tempest_conf(self):
+def fix_tempest_conf(network_client):
     DEFAULT_CONFIG_DIR = os.path.join(
         os.path.abspath(os.path.dirname(os.path.dirname(__file__))),
         "etc")
 
     DEFAULT_CONFIG_FILE = "/tempest.conf"
-    _path = DEFAULT_CONFIG_DIR + self.DEFAULT_CONFIG_FILE
+    _path = DEFAULT_CONFIG_DIR + DEFAULT_CONFIG_FILE
     if not os.path.isfile(_path):
         raise Exception("No config file in %s", _path)
 
@@ -94,7 +99,7 @@ def fix_tempest_conf(self):
     config.read(_path)
 
     # get neutron suported extensions
-    _, extensions_dict = self.network_client.list_extensions()
+    _, extensions_dict = network_client.list_extensions()
     extensions = [x['name'] for x in extensions_dict['extensions']]
 
     # setup network extensions
@@ -105,22 +110,22 @@ def fix_tempest_conf(self):
             to_string = str.format("{0},{1}", ex, to_string)
         to_string = str.format("{0}{1}", to_string, extensions[-1])
         config.set('network-feature-enabled',
-                   'api_extensions', to_String)
+                   'api_extensions', to_string)
 
     # set up image_ref
-    if self.image_ref:
-        config.set('compute', 'image_ref', self.image_ref)
+    if image_ref:
+        config.set('compute', 'image_ref', image_ref)
 
     # set up allow_tenant_isolation
     try:
         if not config.get('auth', 'allow_tenant_isolation'):
             config.set('auth', 'allow_tenant_isolation', 'True')
-    execpt:
+    except:
         if not config.get('compute', 'allow_tenant_isolation'):
             config.set('compute', 'allow_tenant_isolation', 'True')
 
     with open(_path, 'w') as tempest_conf:
-        config.write(tempest)
+        config.write(tempest_conf)
 
 
 if __name__ == "__main__":
