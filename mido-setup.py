@@ -62,10 +62,8 @@ def fix_cirros(glance_client, image_client):
     images = glance_client.images.list()
     flag = 1
     for img in images:
-        print img
-        print "#####"
         if img['checksum'] == '133eae9fb1c98f45894a4e60d8736619' and img[
-                'visibility'] is 'public':
+                'visibility'] == 'public':
             image_ref = img['id']
             flag = 0
             break
@@ -77,7 +75,7 @@ def upload_cirros(image_client):
     # create and image with cirros 0.3.3
     global image_ref
     kwargs = {
-        'location': 'http://download.cirros-cloud.net/0.3.3/cirros-0.3.3-x86_64-disk.img',
+        'copy_from': 'http://download.cirros-cloud.net/0.3.3/cirros-0.3.3-x86_64-disk.img',
         'visibility': 'public',
         'is_public': True,
     }
