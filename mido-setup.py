@@ -5,8 +5,14 @@
 import glanceclient.v2.client as glclient
 import keystoneclient.v2_0.client as ksclient
 import os
+import pip
 
-from simpleconfigparser import simpleconfigparser
+from pkg_resources import WorkingSet , DistributionNotFound 
+try:
+    working_set = WorkingSet()
+    dep = working_set.require('SimpleConfigParser')
+except DistributionNotFound:
+    pip.main(['install', 'SimpleConfigParser'])
 from tempest import clients
 from tempest.scenario.midokura.midotools import admintools
 from tempest import config
